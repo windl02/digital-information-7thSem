@@ -1,0 +1,20 @@
+{
+  "name": "jobproj",
+  "scripts": {
+    "dev": "wrangler dev src/index.ts",
+    "deploy": "wrangler deploy --minify src/index.ts"
+  },
+  "dependencies": {
+    "@hono/zod-validator": "^0.2.2",
+    "@libsql/client": "^0.10.0",
+    "cors": "^2.8.5",
+    "drizzle-kit": "^0.24.2",
+    "drizzle-orm": "^0.33.0",
+    "hono": "^4.5.10",
+    "serve-static": "^1.15.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240529.0",
+    "wrangler": "^3.57.2"
+  }
+}
