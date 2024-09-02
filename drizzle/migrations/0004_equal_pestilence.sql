@@ -9,6 +9,5 @@ CREATE TABLE `jobSeekers` (
 	`experience` text NOT NULL,
 	`skills` text NOT NULL,
 	`education` text NOT NULL,
-	`avatarUrl` text NOT NULL,
-	FOREIGN KEY (`username`) REFERENCES `account`(`username`) ON UPDATE no action ON DELETE no action
+	`avatarUrl` text NOT NULL
 );

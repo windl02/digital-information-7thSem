@@ -72,9 +72,13 @@ export const registerHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
         // Nếu username chưa tồn tại, tiến hành đăng ký
         const role = "jobseeker"
 
-        const query = await db.insert(account)
-            .values({ username, password, role })
-            .returning()
+        await db.insert(account)
+            .values({ username, password, role });
+
+        const query = await db.select()
+            .from(account)
+            .where(eq(account.username, username))
+            .get();
 
         return c.json(query)
     })
@@ -82,7 +86,7 @@ export const registerHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
 
 // Handler để cập nhật mật khẩu
 export const updatePasswordHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
-    app.post('/update-password', async (c) => {
+    app.post('/api/update-password', async (c) => {
         const db = drizzle(c.env.DB)
         const { oldPassword, newPassword } = await c.req.json()
         const token = getCookie(c, 'token')
@@ -122,68 +126,62 @@ export const updatePasswordHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
     })
 }
 
-
 // Handler cho tìm kiếm tài khoản
 export const accountSearchHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
-    app.get('/account/search', async (c) => {
-      const db = drizzle(c.env.DB)
-      const { username } = c.req.query()
-  
-      const query = await db.select()
-        .from(account)
-        .where(like(account.username, `%${username}%`))
-        .all()
-  
-      return c.json(query)
+    app.get('/api/account/search', async (c) => {
+        const db = drizzle(c.env.DB)
+        const { username } = c.req.query()
+
+        const query = await db.select()
+            .from(account)
+            .where(like(account.username, `%${username}%`))
+            .all()
+
+        return c.json(query)
     })
-  }
-  
+}
 
 // Handler cho xóa tài khoản
 export const deleteHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
-    app.delete('/account/delete', async (c) => {
-        const db = drizzle(c.env.DB)
-        const { id } = c.req.query()
+    app.delete('/api/account/delete', async (c) => {
+        const db = drizzle(c.env.DB);
 
-        // Kiểm tra token trong cookie
-        const token = getCookie(c, 'token')
-        if (!token) {
-            throw new HTTPException(401, { message: "Unauthorized" })
-        }
+        // // Kiểm tra token trong cookie
+        // const token = getCookie(c, 'token');
+        // if (!token) {
+        //     throw new HTTPException(401, { message: "Unauthorized" });
+        // }
 
-        // Xác thực token JWT
-        let payload: any
-        try {
-            payload = await verify(token, 'lbIUVipXAWnz3UaHfslL2trn3LBe0gjj')
-        } catch (e) {
-            throw new HTTPException(401, { message: "Invalid token" })
-        }
+        // // Xác thực token JWT và lấy payload
+        // let payload: any;
+        // try {
+        //     payload = await verify(token, 'lbIUVipXAWnz3UaHfslL2trn3LBe0gjj');
+        // } catch (e) {
+        //     throw new HTTPException(401, { message: "Invalid token" });
+        // }
 
-        // Lấy thông tin tài khoản dựa trên id
+        const username = "windl";
+
+        // Lấy thông tin tài khoản dựa trên username
         const existingAccount = await db.select()
             .from(account)
-            .where(eq(account.id, Number(id)))
-            .get()
+            .where(eq(account.username, username))
+            .get();
 
         if (!existingAccount) {
-            throw new HTTPException(404, { message: "Account not found" })
-        }
-
-        // So sánh username trong token với tài khoản cần xóa
-        if (existingAccount.username !== payload.username) {
-            throw new HTTPException(403, { message: "Forbidden: You can only delete your own account" })
+            throw new HTTPException(404, { message: "Account not found" });
         }
 
         // Xóa bản ghi trong bảng jobSeekers trước
         await db.delete(jobSeekers)
-            .where(eq(jobSeekers.username, existingAccount.username))
-            .run()
+            .where(eq(jobSeekers.username, username))
+            .run();
 
         // Sau đó xóa bản ghi trong bảng account
         await db.delete(account)
-            .where(eq(account.id, Number(id)))
-            .run()
+            .where(eq(account.username, username))
+            .run();
 
-        return c.json({ message: "Account and related jobseeker data deleted successfully" })
-    })
+        return c.json({ message: "Account and related jobseeker data deleted successfully" });
+    });
 }

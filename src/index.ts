@@ -5,7 +5,7 @@ import { logger } from 'hono/logger'
 import { homeHandler } from './homeHandler'
 import { getProfileHandler, createProfileHandler, updateProfileHandler } from './profileHandler'
 import { loginHandler, registerHandler, updatePasswordHandler, accountSearchHandler, deleteHandler } from './accountHandler'
-import { addJobHandler, updateJobHandler, jobSearchHandler } from './jobHandler'
+import { jobListHandler, addJobHandler, updateJobHandler, jobSearchHandler, jobSearchByFieldHandler } from './jobHandler'
 
 type Bindings = {
   DB: D1Database
@@ -36,9 +36,11 @@ registerHandler(app)
 updatePasswordHandler(app)
 accountSearchHandler(app)
 deleteHandler(app)
+jobListHandler(app)
 addJobHandler(app)
 updateJobHandler(app)
 jobSearchHandler(app)
+jobSearchByFieldHandler(app)
 getProfileHandler(app)
 createProfileHandler(app)
 updateProfileHandler(app)

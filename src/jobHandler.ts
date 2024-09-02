@@ -40,7 +40,7 @@ const updateJobSchema = z.object({
 })
 
 export const jobListHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
-    app.get('/jobs', async (c) => {
+    app.get('/api/job', async (c) => {
         const db = drizzle(c.env.DB)
 
         // Truy vấn tất cả các công việc từ bảng jobs và thông tin công ty từ bảng company
@@ -54,7 +54,7 @@ export const jobListHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
 }
 
 export const addJobHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
-    app.post('/job/add', zValidator('json', addJobSchema), async (c) => {
+    app.post('/api/job/add', zValidator('json', addJobSchema), async (c) => {
         const db = drizzle(c.env.DB)
         const token = getCookie(c, 'token')
 
@@ -117,7 +117,7 @@ export const addJobHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
 }
 
 export const updateJobHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
-    app.put('/job/update', zValidator('json', updateJobSchema), async (c) => {
+    app.put('/api/job/update', zValidator('json', updateJobSchema), async (c) => {
         const db = drizzle(c.env.DB)
         const token = getCookie(c, 'token')
 
@@ -198,7 +198,7 @@ export const updateJobHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
 }
 
 export const jobSearchHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
-    app.get('/job/search', async (c) => {
+    app.get('/api/job/search', async (c) => {
         const db = drizzle(c.env.DB)
         const { res } = c.req.query()
 
@@ -208,10 +208,53 @@ export const jobSearchHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
             .where(
                 or(
                     like(jobs.title, `%${res}%`),
+                    like(jobs.salary, `%${res}%`),
                     like(jobs.level, `%${res}%`),
-                    like(company.name, `%${res}%`)
+                    like(jobs.exp, `%${res}%`),
+                    like(jobs.quantity, `%${res}%`),
+                    like(jobs.form, `%${res}%`),
+                    like(jobs.address, `%${res}%`),
+                    like(jobs.description, `%${res}%`),
+                    like(company.name, `%${res}%`),
+                    like(company.address, `%${res}%`),
+                    like(company.url, `%${res}%`)
                 )
             )
+            .all()
+
+        return c.json(query)
+    })
+}
+
+export const jobSearchByFieldHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
+    app.post('/api/job/searchbyfield', async (c) => {
+        const db = drizzle(c.env.DB)
+        const { res, field } = await c.req.json<{ res: string, field: string }>()
+
+        const fieldMapping: { [key: string]: any } = {
+            'title': jobs.title,
+            'salary': jobs.salary,
+            'level': jobs.level,
+            'exp': jobs.exp,
+            'quantity': jobs.quantity,
+            'form': jobs.form,
+            'address': jobs.address,
+            'description': jobs.description,
+            'companyName': company.name,
+            'companyAddress': company.address,
+            'companyUrl': company.url,
+        }
+
+        const selectedField = fieldMapping[field]
+
+        if (!selectedField) {
+            return c.json({ error: 'Invalid field' }, 400)
+        }
+
+        const query = await db.select()
+            .from(jobs)
+            .innerJoin(company, eq(company.id, jobs.companyid))
+            .where(like(selectedField, `%${res}%`))
             .all()
 
         return c.json(query)

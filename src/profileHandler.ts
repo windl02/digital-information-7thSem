@@ -6,7 +6,7 @@ import { jobSeekers } from './schema/jobseeker'
 import { eq } from 'drizzle-orm'
 
 export const getProfileHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
-    app.get('/profile', async (c) => {
+    app.get('/api/profile', async (c) => {
         const db = drizzle(c.env.DB)
         const token = getCookie(c, 'token')
 
@@ -38,7 +38,7 @@ export const getProfileHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
 
 // Handler để tạo thông tin cá nhân
 export const createProfileHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
-    app.post('/profile/create', async (c) => {
+    app.post('/api/profile/create', async (c) => {
         const db = drizzle(c.env.DB)
         const profileData = await c.req.json()
         const token = getCookie(c, 'token')
@@ -77,7 +77,7 @@ export const createProfileHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
 
 // Handler để cập nhật thông tin cá nhân
 export const updateProfileHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
-    app.put('/profile/update', async (c) => {
+    app.put('/api/profile/update', async (c) => {
         const db = drizzle(c.env.DB)
         const profileData = await c.req.json()
         const token = getCookie(c, 'token')

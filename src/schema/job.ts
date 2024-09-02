@@ -1,5 +1,4 @@
 import { sqliteTable, integer, text } from "drizzle-orm/sqlite-core"
-import { company } from "./company"
 
 export const jobs = sqliteTable('jobs', {
     id: integer('id', {mode: 'number'}).primaryKey({autoIncrement:true}),
@@ -10,6 +9,6 @@ export const jobs = sqliteTable('jobs', {
     quantity: text('quantity').notNull(),
     form: text('form').notNull(),
     address: text('address').notNull(),
-    companyid: integer('companyid', { mode: 'number' }).notNull().references(() => company.id),
+    companyid: integer('companyid').notNull(),
     description: text('description').notNull(),
   })
