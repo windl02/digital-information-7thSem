@@ -2,7 +2,6 @@ import { Hono } from 'hono'
 import { drizzle } from 'drizzle-orm/d1'
 import { logger } from 'hono/logger'
 
-import { account } from './schema/account'
 import { homeHandler } from './homeHandler'
 import { getProfileHandler, createProfileHandler, updateProfileHandler } from './profileHandler'
 import { loginHandler, registerHandler, updatePasswordHandler, accountSearchHandler, deleteHandler } from './accountHandler'
@@ -44,13 +43,6 @@ getProfileHandler(app)
 createProfileHandler(app)
 updateProfileHandler(app)
 
-app.get('/', async (c) => {
-  const db = drizzle(c.env.DB)
-  const querry = await db.select()
-    .from(account)
-    .all()
-
-  return c.json(querry)
-})
+app.get('/', (c) => c.text('Hê hê!'))
 
 export default app
