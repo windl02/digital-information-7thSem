@@ -39,27 +39,41 @@ const updateJobSchema = z.object({
     description: z.string().optional(),
 })
 
+export const jobListHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
+    app.get('/jobs', async (c) => {
+        const db = drizzle(c.env.DB)
+
+        // Truy vấn tất cả các công việc từ bảng jobs và thông tin công ty từ bảng company
+        const allJobs = await db.select()
+            .from(jobs)
+            .innerJoin(company, eq(company.id, jobs.companyid))
+            .all()
+
+        return c.json(allJobs)
+    })
+}
+
 export const addJobHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
     app.post('/job/add', zValidator('json', addJobSchema), async (c) => {
         const db = drizzle(c.env.DB)
         const token = getCookie(c, 'token')
 
-        // // Xác thực token
-        // if (!token) {
-        //     throw new HTTPException(401, { message: 'Unauthorized' })
-        // }
+        // Xác thực token
+        if (!token) {
+            throw new HTTPException(401, { message: 'Unauthorized' })
+        }
 
-        // let payload: any
-        // try {
-        //     payload = await verify(token, 'lbIUVipXAWnz3UaHfslL2trn3LBe0gjj')
-        // } catch (e) {
-        //     throw new HTTPException(401, { message: 'Invalid token' })
-        // }
+        let payload: any
+        try {
+            payload = await verify(token, 'lbIUVipXAWnz3UaHfslL2trn3LBe0gjj')
+        } catch (e) {
+            throw new HTTPException(401, { message: 'Invalid token' })
+        }
 
-        // // Chỉ admin mới được thêm job
-        // if (payload.role !== 'admin') {
-        //     throw new HTTPException(403, { message: 'Forbidden: Only admin can add jobs' })
-        // }
+        // Chỉ admin mới được thêm job
+        if (payload.role !== 'admin') {
+            throw new HTTPException(403, { message: 'Forbidden: Only admin can add jobs' })
+        }
 
         const {
             title, salary, level, exp, quantity, form, address,
@@ -103,7 +117,7 @@ export const addJobHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
 }
 
 export const updateJobHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
-    app.put('/job/update/:id', zValidator('json', updateJobSchema), async (c) => {
+    app.put('/job/update', zValidator('json', updateJobSchema), async (c) => {
         const db = drizzle(c.env.DB)
         const token = getCookie(c, 'token')
 
@@ -124,7 +138,7 @@ export const updateJobHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
             throw new HTTPException(403, { message: 'Forbidden: Only admin can update jobs' })
         }
 
-        const { id } = c.req.param()
+        const { id } = c.req.query()
         const {
             title, salary, level, exp, quantity, form, address,
             companyName, companyAddress, companyUrl, description
@@ -184,18 +198,18 @@ export const updateJobHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
 }
 
 export const jobSearchHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
-    app.get('/search/job', async (c) => {
+    app.get('/job/search', async (c) => {
         const db = drizzle(c.env.DB)
-        const { search } = c.req.query()
+        const { res } = c.req.query()
 
         const query = await db.select()
             .from(jobs)
             .innerJoin(company, eq(company.id, jobs.companyid))
             .where(
                 or(
-                    like(jobs.title, `%${search}%`),
-                    like(jobs.level, `%${search}%`),
-                    like(company.name, `%${search}%`)
+                    like(jobs.title, `%${res}%`),
+                    like(jobs.level, `%${res}%`),
+                    like(company.name, `%${res}%`)
                 )
             )
             .all()
