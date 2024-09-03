@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile</title>
+    <style>
+        .profile-info {
+            margin-bottom: 20px;
+        }
+        .button-container button {
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Thông Tin Profile</h2>
+
+    <div id="profile-container">
+        <!-- Thông tin profile sẽ được hiển thị ở đây -->
+    </div>
+
+    <div class="button-container" id="action-buttons">
+        <!-- Các nút điều hướng sẽ được hiển thị ở đây -->
+    </div>
+
+    <script>
+        async function fetchProfile() {
+            try {
+                const username = localStorage.getItem('username');
+                const response = await fetch(`https://jobproj.xelanthantoc.workers.dev/api/profile?username=${username}`, {
+                    method: 'GET',
+                    credentials: 'include' // Đảm bảo gửi cookie cùng với yêu cầu
+                });
+
+                const result = await response.json();
+                console.log(username);
+                const profileContainer = document.getElementById('profile-container');
+                const actionButtons = document.getElementById('action-buttons');
+
+                if (response.ok) {
+                    // Nếu có profile, hiển thị thông tin và nút Edit
+                    profileContainer.innerHTML = `
+                        <div class="profile-info">
+                            <p><strong>Họ và tên:</strong> ${result.fullName}</p>
+                            <p><strong>Ngày sinh:</strong> ${result.dateOfBirth}</p>
+                            <p><strong>Địa chỉ:</strong> ${result.address}</p>
+                            <p><strong>Số điện thoại:</strong> ${result.phoneNumber}</p>
+                            <p><strong>Email:</strong> ${result.email}</p>
+                            <p><strong>Kinh nghiệm:</strong> ${result.experience}</p>
+                            <p><strong>Kỹ năng:</strong> ${result.skills}</p>
+                            <p><strong>Giáo dục:</strong> ${result.education}</p>
+                            <p><strong>Ảnh đại diện:</strong> <img src="${result.avatarUrl}" alt="Avatar" width="100"></p>
+                        </div>
+                    `;
+                    actionButtons.innerHTML = `
+                        <button onclick="location.href='/public/editprofile'">Edit</button>
+                        <button onclick="location.href='/public/changepass'">Đổi Mật Khẩu</button>
+                    `;
+                } else {
+                    // Nếu không có profile, hiển thị nút Create
+                    profileContainer.innerHTML = '<p>Không có profile nào.</p>';
+                    actionButtons.innerHTML = `
+                        <button onclick="location.href='/public/createprofile'">Create Profile</button>
+                        <button onclick="location.href='/public/changepass'">Đổi Mật Khẩu</button>
+                    `;
+                }
+            } catch (error) {
+                console.error('Lỗi khi lấy thông tin profile:', error);
+                profileContainer.innerHTML = '<p>Đã xảy ra lỗi khi tải thông tin profile.</p>';
+            }
+        }
+
+        // Gọi hàm để tải dữ liệu khi trang được tải
+        fetchProfile();
+    </script>
+</body>
+</html>

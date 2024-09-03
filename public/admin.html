@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Danh Sách Công Việc</title>
+    <style>
+        .button-container {
+            margin: 20px 0;
+        }
+
+        .button-container button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .search-container {
+            margin: 20px 0;
+        }
+
+        .search-container input {
+            padding: 10px;
+            font-size: 16px;
+            width: 300px;
+            margin-right: 10px;
+        }
+
+        .search-container button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Danh Sách Công Việc</h1>
+
+    <div class="search-container">
+        <input type="text" id="searchInput" placeholder="Nhập từ khóa tìm kiếm công việc..." />
+        <button id="searchButton">Tìm kiếm</button>
+    </div>
+
+    <div class="button-container">
+        <button onclick="location.href='https://deadinside.pages.dev/public/addjob'">Thêm Công Việc</button>
+    </div>
+
+    <table border="1">
+        <thead>
+            <tr>
+                <th>Tiêu đề công việc</th>
+                <th>Mức lương</th>
+                <th>Cấp bậc</th>
+                <th>Kinh nghiệm</th>
+                <th>Số lượng</th>
+                <th>Hình thức</th>
+                <th>Địa chỉ</th>
+                <th>Tên công ty</th>
+                <th>Địa chỉ công ty</th>
+                <th>Website công ty</th>
+            </tr>
+        </thead>
+        <tbody id="jobList">
+            <!-- Các hàng sẽ được thêm vào đây -->
+        </tbody>
+    </table>
+
+    <script>
+        // Gọi API để lấy danh sách công việc ban đầu
+        fetch('https://jobproj.xelanthantoc.workers.dev/api/job', {
+            method: 'GET'
+        })
+            .then(response => response.json())
+            .then(data => {
+                renderJobList(data);
+            })
+            .catch(error => {
+                console.error('Error fetching job list:', error);
+                alert('Không thể tải danh sách công việc.');
+            });
+
+        // Xử lý sự kiện tìm kiếm
+        document.getElementById('searchButton').addEventListener('click', async () => {
+
+            const searchTerm = document.getElementById('searchInput').value;
+
+            try {
+                const response = await fetch(`https://jobproj.xelanthantoc.workers.dev/api/job/search?res=${searchTerm}`, {
+                    method: 'GET' 
+                });
+
+                if (!response.ok) {
+                    throw new Error('Network response was not ok.');
+                }
+
+                const jobs = await response.json();
+
+                renderJobList(jobs);
+            } catch (error) {
+                // Xử lý lỗi nếu có
+                console.error('Error fetching job list:', error);
+                alert('Không thể tải danh sách công việc.');
+            }
+        });
+
+        // Hàm hiển thị danh sách công việc
+        function renderJobList(data) {
+            const jobListElement = document.getElementById('jobList');
+            jobListElement.innerHTML = ''; // Xóa các kết quả cũ
+
+            // Duyệt qua danh sách công việc và thêm vào bảng
+            data.forEach(job => {
+                const row = document.createElement('tr');
+
+                row.innerHTML = `
+                    <td><a href="/public/details?id=${job.jobs.id}">${job.jobs.title}</a></td>
+                    <td>${job.jobs.salary}</td>
+                    <td>${job.jobs.level}</td>
+                    <td>${job.jobs.exp}</td>
+                    <td>${job.jobs.quantity}</td>
+                    <td>${job.jobs.form}</td>
+                    <td>${job.jobs.address}</td>
+                    <td>${job.company.name}</td>
+                    <td>${job.company.address}</td>
+                    <td><a href="${job.company.url}" target="_blank">${job.company.url}</a></td>
+                `;
+
+                jobListElement.appendChild(row);
+            });
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cập Nhật Hồ Sơ</title>
+    <style>
+        .form-container {
+            margin: 20px;
+        }
+        .form-group {
+            margin-bottom: 10px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        .form-group button {
+            padding: 10px 15px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Cập Nhật Hồ Sơ</h2>
+    <div class="form-container">
+        <form id="update-profile-form">
+            <div class="form-group">
+                <label for="fullName">Họ và tên:</label>
+                <input type="text" id="fullName" name="fullName" required>
+            </div>
+            <div class="form-group">
+                <label for="dateOfBirth">Ngày sinh:</label>
+                <input type="date" id="dateOfBirth" name="dateOfBirth" required>
+            </div>
+            <div class="form-group">
+                <label for="address">Địa chỉ:</label>
+                <input type="text" id="address" name="address" required>
+            </div>
+            <div class="form-group">
+                <label for="phoneNumber">Số điện thoại:</label>
+                <input type="text" id="phoneNumber" name="phoneNumber" required>
+            </div>
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            <div class="form-group">
+                <label for="experience">Kinh nghiệm:</label>
+                <input type="text" id="experience" name="experience">
+            </div>
+            <div class="form-group">
+                <label for="skills">Kỹ năng:</label>
+                <input type="text" id="skills" name="skills">
+            </div>
+            <div class="form-group">
+                <label for="education">Giáo dục:</label>
+                <input type="text" id="education" name="education">
+            </div>
+            <div class="form-group">
+                <label for="avatarUrl">Ảnh đại diện:</label>
+                <input type="text" id="avatarUrl" name="avatarUrl">
+            </div>
+            <button type="submit">Cập Nhật</button>
+        </form>
+    </div>
+
+    <script>
+        async function loadProfile() {
+            try {
+                const username = localStorage.getItem('username');
+                const response = await fetch(`https://jobproj.xelanthantoc.workers.dev/api/profile/update?username=${username}`, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                const profile = await response.json();
+
+                if (response.ok) {
+                    document.getElementById('fullName').value = profile.fullName;
+                    document.getElementById('dateOfBirth').value = profile.dateOfBirth;
+                    document.getElementById('address').value = profile.address;
+                    document.getElementById('phoneNumber').value = profile.phoneNumber;
+                    document.getElementById('email').value = profile.email;
+                    document.getElementById('experience').value = profile.experience;
+                    document.getElementById('skills').value = profile.skills;
+                    document.getElementById('education').value = profile.education;
+                    document.getElementById('avatarUrl').value = profile.avatarUrl;
+                } else {
+                    alert('Không thể tải thông tin hồ sơ.');
+                }
+            } catch (error) {
+                console.error('Lỗi khi tải thông tin hồ sơ:', error);
+            }
+        }
+
+        document.getElementById('update-profile-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData);
+
+            try {
+                const username = localStorage.getItem('username');
+                const response = await fetch(`https://jobproj.xelanthantoc.workers.dev/api/profile/update?username=${username}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data),
+                    credentials: 'include'
+                });
+                const result = await response.json();
+
+                if (response.ok) {
+                    alert('Cập nhật hồ sơ thành công.');
+                } else {
+                    alert('Cập nhật hồ sơ không thành công: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Lỗi khi cập nhật hồ sơ:', error);
+            }
+        });
+
+        // Tải thông tin profile khi trang được tải
+        loadProfile();
+    </script>
+</body>
+</html>

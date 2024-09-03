@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chi Tiết Công Việc</title>
+    <style>
+        .container {
+            width: 80%;
+            margin: auto;
+        }
+        .job-detail {
+            margin-bottom: 20px;
+        }
+        .job-detail h2 {
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Chi Tiết Công Việc</h1>
+
+        <!-- Hiển thị chi tiết công việc ở đây -->
+        <div id="jobDetail" class="job-detail"></div>
+
+        <!-- Nút trở về trang danh sách công việc -->
+        <button onclick="window.location.href='https://deadinside.pages.dev/public/home'">Trở Về Danh Sách Công Việc</button>
+    </div>
+
+    <script>
+        // Lấy tham số truy vấn từ URL
+        function getQueryParam(param) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(param);
+        }
+
+        // Gọi API để lấy chi tiết công việc
+        async function fetchJobDetails() {
+            const jobId = getQueryParam('id');
+
+            if (!jobId) {
+                alert('ID công việc không hợp lệ.');
+                return;
+            }
+
+            try {
+                const response = await fetch(`https://jobproj.xelanthantoc.workers.dev/api/job/details?id=${jobId}`, {
+                    method: 'GET'
+                });
+
+                const data = await response.json();
+                const jobDetailElement = document.getElementById('jobDetail');
+
+                if (data.message) {
+                    jobDetailElement.innerHTML = `<p>${data.message}</p>`;
+                } else {
+                    jobDetailElement.innerHTML = `
+                        <h2>${data.jobs.title}</h2>
+                        <p><strong>Mức lương:</strong> ${data.jobs.salary}</p>
+                        <p><strong>Cấp bậc:</strong> ${data.jobs.level}</p>
+                        <p><strong>Kinh nghiệm:</strong> ${data.jobs.exp}</p>
+                        <p><strong>Số lượng:</strong> ${data.jobs.quantity}</p>
+                        <p><strong>Hình thức:</strong> ${data.jobs.form}</p>
+                        <p><strong>Địa chỉ:</strong> ${data.jobs.address}</p>
+                        <p><strong>Mô tả:</strong> ${data.jobs.description}</p>
+                        <h3>Thông Tin Công Ty</h3>
+                        <p><strong>Tên công ty:</strong> ${data.company.name}</p>
+                        <p><strong>Địa chỉ công ty:</strong> ${data.company.address}</p>
+                        <p><strong>Website công ty:</strong> <a href="${data.company.url}" target="_blank">${data.company.url}</a></p>
+                    `;
+                }
+            } catch (error) {
+                console.error('Lỗi khi lấy chi tiết công việc:', error);
+                alert('Không thể tải chi tiết công việc.');
+            }
+        }
+
+        // Gọi hàm để tải dữ liệu khi trang được tải
+        fetchJobDetails();
+    </script>
+</body>
+</html>

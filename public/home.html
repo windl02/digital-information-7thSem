@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trang Chủ</title>
+    <style>
+        .button-container {
+            margin: 20px 0;
+        }
+
+        .button-container button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .search-container {
+            margin: 20px 0;
+        }
+
+        .search-container input {
+            padding: 10px;
+            font-size: 16px;
+            width: 300px;
+            margin-right: 10px;
+        }
+
+        .search-container button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="search-container">
+        <input type="text" id="searchInput" placeholder="Nhập từ khóa tìm kiếm công việc..." />
+        <button id="searchButton">Tìm kiếm</button>
+    </div>
+    <h2>Danh Sách Công Việc</h2>
+    <div id="jobs-list"></div>
+
+    <div class="button-container" id="auth-buttons">
+        <!-- Các nút điều hướng sẽ được hiển thị ở đây -->
+    </div>
+
+    <script>
+        async function fetchJobs(query = "") {
+            try {
+                const response = await fetch(`https://jobproj.xelanthantoc.workers.dev/api/job/search?res=${query}`, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+
+                const result = await response.json();
+                const jobsList = document.getElementById('jobs-list');
+                const authButtons = document.getElementById('auth-buttons');
+                const tokenC = result.token;
+                const tokenL = localStorage.getItem('token');
+
+                // Hiển thị danh sách công việc
+                if (result.length > 0) {
+                    jobsList.innerHTML = '<ul>' + result.map(job => `<li>${job.jobs.title} - ${job.company.name}</li>`).join('') + '</ul>';
+                } else {
+                    jobsList.innerHTML = 'Không có công việc nào.';
+                }
+
+                // Hiển thị các nút điều hướng dựa trên trạng thái đăng nhập
+                if (tokenC == tokenL) {
+                    authButtons.innerHTML = `
+                        <button onclick="location.href='https://deadinside.pages.dev/public/profile'">Profile</button>
+                        <button onclick="logout()">Logout</button>
+                    `;
+                } else {
+                    authButtons.innerHTML = `
+                        <button onclick="location.href='https://deadinside.pages.dev/public/login'">Login</button>
+                        <button onclick="location.href='https://deadinside.pages.dev/public/register'">Register</button>
+                    `;
+                }
+            } catch (error) {
+                console.error('Lỗi khi lấy danh sách công việc:', error);
+            }
+        }
+
+        async function logout() {
+            try {
+                const response = await fetch('https://jobproj.xelanthantoc.workers.dev/logout', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('username');
+                    localStorage.removeItem()
+                    location.href = 'https://deadinside.pages.dev/public/login';
+                } else {
+                    alert('Đăng xuất không thành công');
+                }
+            } catch (error) {
+                console.error('Lỗi khi đăng xuất:', error);
+            }
+        }
+
+        document.getElementById('searchButton').addEventListener('click', () => {
+            const query = document.getElementById('searchInput').value.trim();
+            fetchJobs(query); // Thực hiện tìm kiếm với từ khóa
+        });
+
+        // Gọi hàm để tải dữ liệu khi trang được tải
+        fetchJobs();
+    </script>
+</body>
+</html>

@@ -7,8 +7,8 @@ binding = "DB" # i.e. available in your Worker on env.DB
 database_name = "jobproj-data"
 database_id = "1bcd935f-b100-45f1-af24-e9c53090092a"
 
-# [vars]
-# MY_VAR = "my-variable"
+[vars]
+SECRET = "NP6EyXWfaqR7YFbpSZMmEa77BmtyFQJU"
 
 # [[kv_namespaces]]
 # binding = "MY_KV_NAMESPACE"

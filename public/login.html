@@ -1,101 +1,58 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login Form</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background-color: #f5f5f5;
-        }
-
-        .login-container {
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .login-container h2 {
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        .login-container input {
-            width: 100%;
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 4px;
-            border: 1px solid #ddd;
-        }
-
-        .login-container button {
-            width: 100%;
-            padding: 10px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        .login-container button:hover {
-            background-color: #0056b3;
-        }
-
-        .error-message {
-            color: red;
-            margin-top: 10px;
-            text-align: center;
-        }
-    </style>
+    <title>Đăng Nhập</title>
 </head>
-
 <body>
-    <h2>Login</h2>
+    <h2>Đăng Nhập</h2>
     <form id="login-form">
-        <label for="username">Username:</label>
+        <label for="username">Tên đăng nhập:</label><br>
         <input type="text" id="username" name="username" required><br><br>
-        <label for="password">Password:</label>
+
+        <label for="password">Mật khẩu:</label><br>
         <input type="password" id="password" name="password" required><br><br>
-        <button type="submit">Submit</button>
+
+        <button type="submit">Đăng Nhập</button>
     </form>
 
-    <div id="result"></div>
-
     <script>
-        document.getElementById('login-form').addEventListener('submit', async function (event) {
+        async function handleLogin(event) {
             event.preventDefault();
 
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
 
-            const response = await fetch('https://jobproj.xelanthantoc.workers.dev/login', {
+            const response = await fetch(`https://jobproj.xelanthantoc.workers.dev/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
+                credentials: "include",
                 body: JSON.stringify({ username, password }),
             });
 
             const result = await response.json();
+            const token = result.token;
+            const role = result.role;
 
-            if (response.ok) {
-
-                window.location.href = 'http://127.0.0.1:5500/public/homepage.html';
+            if (result.success) {
+                localStorage.setItem('token', token);
+                localStorage.setItem('username', username);
+                localStorage.setItem('role', role);
+                alert(result.message); // Thông báo đăng nhập thành công
+                if (role === "admin"){
+                    window.location.href = 'https://deadinside.pages.dev/public/admin';
+                }
+                else
+                window.location.href = 'https://deadinside.pages.dev/public/home';
             } else {
-                document.getElementById('result').innerText = 'Login failed: ' + result.message;
+                alert(result.message); // Thông báo đăng nhập thất bại
             }
-        });
+        }
+
+        document.getElementById('login-form').addEventListener('submit', handleLogin);
     </script>
 </body>
-
 </html>

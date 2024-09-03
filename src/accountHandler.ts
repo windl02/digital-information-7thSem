@@ -6,8 +6,10 @@ import { eq, like } from 'drizzle-orm'
 import { account } from './schema/account'
 import { jobSeekers } from './schema/jobseeker'
 import { HTTPException } from 'hono/http-exception'
-import { getCookie, setCookie } from 'hono/cookie'
-import { verify, sign } from 'hono/jwt'
+import { getCookie, setCookie, deleteCookie } from 'hono/cookie'
+import { sign } from 'hono/jwt'
+
+
 
 // Schema cho đăng ký và đăng nhập
 const authSchema = z.object({
@@ -16,10 +18,11 @@ const authSchema = z.object({
 })
 
 // Handler cho đăng nhập
-export const loginHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
+export const loginHandler = (app: Hono<{ Bindings: { DB: any; SECRET: string } }>) => {
     app.post('/login', zValidator('json', authSchema), async (c) => {
         const { username, password } = await c.req.json()
         const db = drizzle(c.env.DB)
+        const secret = c.env.SECRET
         const acc = await db.select().from(account)
             .where(eq(account.username, username))
             .get()
@@ -34,27 +37,47 @@ export const loginHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
 
         const payload = {
             username,
-            // exp: Math.floor(Date.now() / (1000 * 60 * 60))
-            exp: 1000 // Thay đổi thời gian hết hạn token nếu cần
+            // exp: Math.floor(Date.now() / 1000) + (60 * 60) // Token hết hạn sau 1 giờ
+            exp: 1000
         }
 
-        const token = await sign(payload, 'lbIUVipXAWnz3UaHfslL2trn3LBe0gjj')
+        const token = await sign(payload, secret)
 
         setCookie(c, 'token', token, {
+            path: '/',
             httpOnly: true,
-            secure: false,
-            sameSite: 'Lax',
+            secure: true,
+            sameSite: 'none'
+        })
+
+        setCookie(c, 'username', username, {
+            path: '/', httpOnly: true, secure: true, sameSite: 'none'
+        })
+
+        const role = acc.role
+
+        setCookie(c, 'role', role, {
+            path: '/', httpOnly: true, secure: true, sameSite: 'none'
         })
 
         return c.json({
-            payload,
-            token
+            token, username, role: role,
+            success: true,
+            message: "Login successful"
         })
     })
 }
 
+// Handler cho đăng xuất
+export const logoutHandler = (app: Hono<{ Bindings: { DB: any; SECRET: string } }>) => {
+    app.post('/logout', (c) => {
+        deleteCookie(c, 'token')
+        return c.json({ success: true, message: "Logged out successfully" })
+    })
+}
+
 // Handler cho đăng ký
-export const registerHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
+export const registerHandler = (app: Hono<{ Bindings: { DB: any; SECRET: string } }>) => {
     app.post('/register', zValidator('json', authSchema), async (c) => {
         const db = drizzle(c.env.DB)
         const { username, password } = await c.req.json()
@@ -85,7 +108,7 @@ export const registerHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
 }
 
 // Handler để cập nhật mật khẩu
-export const updatePasswordHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
+export const updatePasswordHandler = (app: Hono<{ Bindings: { DB: any; SECRET: string } }>) => {
     app.post('/api/update-password', async (c) => {
         const db = drizzle(c.env.DB)
         const { oldPassword, newPassword } = await c.req.json()
@@ -95,18 +118,11 @@ export const updatePasswordHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
             return c.json({ message: "Unauthorized" }, 401)
         }
 
-        let decoded
-        try {
-            decoded = await verify(token, 'lbIUVipXAWnz3UaHfslL2trn3LBe0gjj')
-        } catch (e) {
-            return c.json({ message: "Invalid token" }, 401)
-        }
-
-        const username = String(decoded.username)
+        const username = c.req.query('username')
 
         const acc = await db.select()
             .from(account)
-            .where(eq(account.username, username))
+            .where(eq(account.username, `${username}`))
             .get()
 
         if (!acc) {
@@ -119,7 +135,7 @@ export const updatePasswordHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
 
         await db.update(account)
             .set({ password: newPassword })
-            .where(eq(account.username, username))
+            .where(eq(account.username, `${username}`))
             .run()
 
         return c.json({ message: "Password updated successfully" })
@@ -127,7 +143,7 @@ export const updatePasswordHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
 }
 
 // Handler cho tìm kiếm tài khoản
-export const accountSearchHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
+export const accountSearchHandler = (app: Hono<{ Bindings: { DB: any; SECRET: string } }>) => {
     app.get('/api/account/search', async (c) => {
         const db = drizzle(c.env.DB)
         const { username } = c.req.query()
@@ -142,30 +158,22 @@ export const accountSearchHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
 }
 
 // Handler cho xóa tài khoản
-export const deleteHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
+export const deleteHandler = (app: Hono<{ Bindings: { DB: any; SECRET: string } }>) => {
     app.delete('/api/account/delete', async (c) => {
         const db = drizzle(c.env.DB);
 
-        // // Kiểm tra token trong cookie
-        // const token = getCookie(c, 'token');
-        // if (!token) {
-        //     throw new HTTPException(401, { message: "Unauthorized" });
-        // }
+        // Kiểm tra token trong cookie
+        const token = getCookie(c, 'token');
+        if (!token) {
+            throw new HTTPException(401, { message: "Unauthorized" });
+        }
 
-        // // Xác thực token JWT và lấy payload
-        // let payload: any;
-        // try {
-        //     payload = await verify(token, 'lbIUVipXAWnz3UaHfslL2trn3LBe0gjj');
-        // } catch (e) {
-        //     throw new HTTPException(401, { message: "Invalid token" });
-        // }
-
-        const username = "windl";
+        const username = c.req.query('username')
 
         // Lấy thông tin tài khoản dựa trên username
         const existingAccount = await db.select()
             .from(account)
-            .where(eq(account.username, username))
+            .where(eq(account.username, `${username}`))
             .get();
 
         if (!existingAccount) {
@@ -174,12 +182,12 @@ export const deleteHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
 
         // Xóa bản ghi trong bảng jobSeekers trước
         await db.delete(jobSeekers)
-            .where(eq(jobSeekers.username, username))
+            .where(eq(jobSeekers.username, `${username}`))
             .run();
 
         // Sau đó xóa bản ghi trong bảng account
         await db.delete(account)
-            .where(eq(account.username, username))
+            .where(eq(account.username, `${username}`))
             .run();
 
         return c.json({ message: "Account and related jobseeker data deleted successfully" });

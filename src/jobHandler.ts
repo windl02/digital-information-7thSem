@@ -3,7 +3,6 @@ import { drizzle } from 'drizzle-orm/d1'
 import { z } from 'zod'
 import { zValidator } from '@hono/zod-validator'
 import { getCookie } from 'hono/cookie'
-import { verify } from 'hono/jwt'
 import { HTTPException } from 'hono/http-exception'
 import { jobs } from './schema/job'
 import { company } from './schema/company'
@@ -39,7 +38,7 @@ const updateJobSchema = z.object({
     description: z.string().optional(),
 })
 
-export const jobListHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
+export const jobListHandler = (app: Hono<{ Bindings: { DB: any; SECRET: string } }>) => {
     app.get('/api/job', async (c) => {
         const db = drizzle(c.env.DB)
 
@@ -53,25 +52,20 @@ export const jobListHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
     })
 }
 
-export const addJobHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
+export const addJobHandler = (app: Hono<{ Bindings: { DB: any; SECRET: string } }>) => {
     app.post('/api/job/add', zValidator('json', addJobSchema), async (c) => {
         const db = drizzle(c.env.DB)
         const token = getCookie(c, 'token')
+        const username = getCookie(c, 'username')
+        const role = getCookie(c, 'role')
 
         // Xác thực token
         if (!token) {
             throw new HTTPException(401, { message: 'Unauthorized' })
         }
 
-        let payload: any
-        try {
-            payload = await verify(token, 'lbIUVipXAWnz3UaHfslL2trn3LBe0gjj')
-        } catch (e) {
-            throw new HTTPException(401, { message: 'Invalid token' })
-        }
-
         // Chỉ admin mới được thêm job
-        if (payload.role !== 'admin') {
+        if (`${role}` !== 'admin') {
             throw new HTTPException(403, { message: 'Forbidden: Only admin can add jobs' })
         }
 
@@ -112,29 +106,24 @@ export const addJobHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
             })
             .returning()
 
-        return c.json({ message: 'Job added successfully', job: newJob })
+        return c.json({ message: 'Job added successfully', job: newJob, token, role })
     })
 }
 
-export const updateJobHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
+export const updateJobHandler = (app: Hono<{ Bindings: { DB: any; SECRET: string } }>) => {
     app.put('/api/job/update', zValidator('json', updateJobSchema), async (c) => {
         const db = drizzle(c.env.DB)
         const token = getCookie(c, 'token')
+        const role = getCookie(c, 'role')
 
         // Xác thực token
         if (!token) {
             throw new HTTPException(401, { message: 'Unauthorized' })
         }
 
-        let payload: any
-        try {
-            payload = await verify(token, 'lbIUVipXAWnz3UaHfslL2trn3LBe0gjj')
-        } catch (e) {
-            throw new HTTPException(401, { message: 'Invalid token' })
-        }
-
         // Chỉ admin mới được cập nhật job
-        if (payload.role !== 'admin') {
+
+        if (`${role}` !== 'admin') {
             throw new HTTPException(403, { message: 'Forbidden: Only admin can update jobs' })
         }
 
@@ -197,7 +186,26 @@ export const updateJobHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
     })
 }
 
-export const jobSearchHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
+export const detailsHandler = (app: Hono<{ Bindings: { DB: any; SECRET: string } }>) => {
+    app.get('/api/job/details', async (c) => {
+        const db = drizzle(c.env.DB)
+        const id = c.req.query('id')
+
+        const job = await db.select()
+            .from(jobs)
+            .innerJoin(company, eq(company.id, jobs.companyid))
+            .where(eq(jobs.id, parseInt(`${id}`)))
+            .get()
+
+        if (!job) {
+            return c.json({ message: "Job not found" }, 404)
+        }
+
+        return c.json(job)
+    })
+}
+
+export const jobSearchHandler = (app: Hono<{ Bindings: { DB: any; SECRET: string } }>) => {
     app.get('/api/job/search', async (c) => {
         const db = drizzle(c.env.DB)
         const { res } = c.req.query()
@@ -226,7 +234,7 @@ export const jobSearchHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
     })
 }
 
-export const jobSearchByFieldHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
+export const jobSearchByFieldHandler = (app: Hono<{ Bindings: { DB: any; SECRET: string } }>) => {
     app.post('/api/job/searchbyfield', async (c) => {
         const db = drizzle(c.env.DB)
         const { res, field } = await c.req.json<{ res: string, field: string }>()

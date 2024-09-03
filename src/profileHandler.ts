@@ -1,11 +1,10 @@
 import { Hono } from 'hono'
 import { drizzle } from 'drizzle-orm/d1'
 import { getCookie } from 'hono/cookie'
-import { verify } from 'hono/jwt'
 import { jobSeekers } from './schema/jobseeker'
 import { eq } from 'drizzle-orm'
 
-export const getProfileHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
+export const getProfileHandler = (app: Hono<{ Bindings: { DB: any; SECRET: string } }>) => {
     app.get('/api/profile', async (c) => {
         const db = drizzle(c.env.DB)
         const token = getCookie(c, 'token')
@@ -14,18 +13,11 @@ export const getProfileHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
             return c.json({ message: "Unauthorized" }, 401)
         }
 
-        let decoded
-        try {
-            decoded = await verify(token, 'lbIUVipXAWnz3UaHfslL2trn3LBe0gjj')
-        } catch (e) {
-            return c.json({ message: "Invalid token" }, 401)
-        }
-
-        const username = String(decoded.username)
+        const username = c.req.query('username')
 
         const profile = await db.select()
             .from(jobSeekers)
-            .where(eq(jobSeekers.username, username))
+            .where(eq(jobSeekers.username, `${username}`))
             .get()
 
         if (!profile) {
@@ -37,7 +29,7 @@ export const getProfileHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
 }
 
 // Handler để tạo thông tin cá nhân
-export const createProfileHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
+export const createProfileHandler = (app: Hono<{ Bindings: { DB: any; SECRET: string } }>) => {
     app.post('/api/profile/create', async (c) => {
         const db = drizzle(c.env.DB)
         const profileData = await c.req.json()
@@ -47,18 +39,11 @@ export const createProfileHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
             return c.json({ message: "Unauthorized" }, 401)
         }
 
-        let decoded
-        try {
-            decoded = await verify(token, 'lbIUVipXAWnz3UaHfslL2trn3LBe0gjj')
-        } catch (e) {
-            return c.json({ message: "Invalid token" }, 401)
-        }
-
-        const username = String(decoded.username)
+        const username = c.req.query('username')
 
         const existingProfile = await db.select()
             .from(jobSeekers)
-            .where(eq(jobSeekers.username, username))
+            .where(eq(jobSeekers.username, `${username}`))
             .get()
 
         if (existingProfile) {
@@ -76,39 +61,54 @@ export const createProfileHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
 }
 
 // Handler để cập nhật thông tin cá nhân
-export const updateProfileHandler = (app: Hono<{ Bindings: { DB: any } }>) => {
-    app.put('/api/profile/update', async (c) => {
+export const updateProfileHandler = (app: Hono<{ Bindings: { DB: any; SECRET: string } }>) => {
+    app.get('/api/profile/update', async (c) => {
         const db = drizzle(c.env.DB)
-        const profileData = await c.req.json()
         const token = getCookie(c, 'token')
 
         if (!token) {
             return c.json({ message: "Unauthorized" }, 401)
         }
 
-        let decoded
-        try {
-            decoded = await verify(token, 'lbIUVipXAWnz3UaHfslL2trn3LBe0gjj')
-        } catch (e) {
-            return c.json({ message: "Invalid token" }, 401)
+        const username = c.req.query('username')
+
+        const profile = await db.select()
+            .from(jobSeekers)
+            .where(eq(jobSeekers.username, `${username}`))
+            .get()
+
+        if (!profile) {
+            return c.json({ message: "No profile found" }, 404)
         }
 
-        const username = String(decoded.username)
+        return c.json(profile)
+    })
+
+    app.put('/api/profile/update', async (c) => {
+        const db = drizzle(c.env.DB);
+        const profileData = await c.req.json();
+        const token = getCookie(c, 'token');
+
+        if (!token) {
+            return c.json({ message: "Unauthorized" }, 401);
+        }
+
+        const username = c.req.query('username');
 
         const existingProfile = await db.select()
             .from(jobSeekers)
-            .where(eq(jobSeekers.username, username))
-            .get()
+            .where(eq(jobSeekers.username, `${username}`))
+            .get();
 
         if (!existingProfile) {
-            return c.json({ message: "Profile not found" }, 404)
+            return c.json({ message: "Profile not found" }, 404);
         }
 
         await db.update(jobSeekers)
             .set(profileData)
-            .where(eq(jobSeekers.username, username))
-            .run()
+            .where(eq(jobSeekers.username, `${username}`))
+            .run();
 
-        return c.json({ message: "Profile updated successfully" })
-    })
+        return c.json({ message: "Profile updated successfully" });
+    });
 }

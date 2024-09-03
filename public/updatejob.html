@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chi Tiết Công Việc</title>
+    <style>
+        .form-container {
+            margin: 20px;
+        }
+        .form-group {
+            margin-bottom: 10px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        .form-group button {
+            padding: 10px 15px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Chi Tiết Công Việc</h2>
+    <div class="form-container">
+        <form id="update-job-form">
+            <input type="hidden" id="jobId" name="jobId">
+            <div class="form-group">
+                <label for="title">Tiêu đề công việc:</label>
+                <input type="text" id="title" name="title" required>
+            </div>
+            <div class="form-group">
+                <label for="salary">Mức lương:</label>
+                <input type="text" id="salary" name="salary" required>
+            </div>
+            <div class="form-group">
+                <label for="level">Cấp bậc:</label>
+                <input type="text" id="level" name="level" required>
+            </div>
+            <div class="form-group">
+                <label for="exp">Kinh nghiệm:</label>
+                <input type="text" id="exp" name="exp">
+            </div>
+            <div class="form-group">
+                <label for="quantity">Số lượng:</label>
+                <input type="text" id="quantity" name="quantity">
+            </div>
+            <div class="form-group">
+                <label for="form">Hình thức:</label>
+                <input type="text" id="form" name="form">
+            </div>
+            <div class="form-group">
+                <label for="address">Địa chỉ:</label>
+                <input type="text" id="address" name="address">
+            </div>
+            <div class="form-group">
+                <label for="companyName">Tên công ty:</label>
+                <input type="text" id="companyName" name="companyName">
+            </div>
+            <div class="form-group">
+                <label for="companyAddress">Địa chỉ công ty:</label>
+                <input type="text" id="companyAddress" name="companyAddress">
+            </div>
+            <div class="form-group">
+                <label for="companyUrl">Website công ty:</label>
+                <input type="text" id="companyUrl" name="companyUrl">
+            </div>
+            <div class="form-group">
+                <label for="description">Mô tả:</label>
+                <input type="text" id="description" name="description">
+            </div>
+            <button type="submit">Cập Nhật</button>
+        </form>
+    </div>
+
+    <script>
+        function getQueryParam(name) {
+            const params = new URLSearchParams(window.location.search);
+            return params.get(name);
+        }
+
+        async function loadJobDetails() {
+            try {
+                const jobId = getQueryParam('id');
+                const response = await fetch(`https://jobproj.xelanthantoc.workers.dev/api/job/details?id=${jobId}`, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                const job = await response.json();
+
+                if (response.ok) {
+                    document.getElementById('jobId').value = job.id;
+                    document.getElementById('title').value = job.title;
+                    document.getElementById('salary').value = job.salary;
+                    document.getElementById('level').value = job.level;
+                    document.getElementById('exp').value = job.exp;
+                    document.getElementById('quantity').value = job.quantity;
+                    document.getElementById('form').value = job.form;
+                    document.getElementById('address').value = job.address;
+                    document.getElementById('companyName').value = job.company.name;
+                    document.getElementById('companyAddress').value = job.company.address;
+                    document.getElementById('companyUrl').value = job.company.url;
+                    document.getElementById('description').value = job.description;
+                } else {
+                    alert('Không thể tải thông tin công việc.');
+                }
+            } catch (error) {
+                console.error('Lỗi khi tải thông tin công việc:', error);
+            }
+        }
+
+        document.getElementById('update-job-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData);
+
+            try {
+                const jobId = getQueryParam('id');
+                const response = await fetch('https://jobproj.xelanthantoc.workers.dev/api/job/update?id=${jobId}', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data),
+                    credentials: 'include'
+                });
+                const result = await response.json();
+
+                if (response.ok) {
+                    alert('Cập nhật công việc thành công.');
+                } else {
+                    alert('Cập nhật công việc không thành công: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Lỗi khi cập nhật công việc:', error);
+            }
+        });
+
+        // Tải thông tin công việc khi trang được tải
+        loadJobDetails();
+    </script>
+</body>
+</html>
