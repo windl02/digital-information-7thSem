@@ -56,8 +56,7 @@
                 const result = await response.json();
                 const jobsList = document.getElementById('jobs-list');
                 const authButtons = document.getElementById('auth-buttons');
-                const tokenC = result.token;
-                const tokenL = localStorage.getItem('token');
+                const token = localStorage.getItem('token');
 
                 // Hiển thị danh sách công việc
                 if (result.length > 0) {
@@ -67,7 +66,7 @@
                 }
 
                 // Hiển thị các nút điều hướng dựa trên trạng thái đăng nhập
-                if (tokenC == tokenL) {
+                if (token) {
                     authButtons.innerHTML = `
                         <button onclick="location.href='https://deadinside.pages.dev/public/profile'">Profile</button>
                         <button onclick="logout()">Logout</button>
@@ -93,8 +92,6 @@
                 const result = await response.json();
                 if (result.success) {
                     localStorage.removeItem('token');
-                    localStorage.removeItem('username');
-                    localStorage.removeItem()
                     location.href = 'https://deadinside.pages.dev/public/login';
                 } else {
                     alert('Đăng xuất không thành công');
