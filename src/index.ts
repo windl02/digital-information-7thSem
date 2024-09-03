@@ -21,7 +21,7 @@ app.use(logger())
 // Thêm middleware CORS
 const allowedOrigin = 'https://deadinside.pages.dev' // Chỉ định nguồn gốc của frontend
 app.use(async (c, next) => {
-  c.header('Access-Control-Allow-Origin', allowedOrigin)
+  c.res.headers.set('Access-Control-Allow-Origin', '*');
   c.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
   c.header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
   c.header('Access-Control-Allow-Credentials', 'true')
