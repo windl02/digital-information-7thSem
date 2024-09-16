@@ -6,7 +6,7 @@ import { getCookie } from 'hono/cookie'
 import { HTTPException } from 'hono/http-exception'
 import { jobs } from './schema/job'
 import { company } from './schema/company'
-import { eq, or, like } from 'drizzle-orm'
+import { eq, or, like, sql } from 'drizzle-orm'
 
 // Schema cho việc thêm mới job
 const addJobSchema = z.object({
@@ -38,17 +38,51 @@ const updateJobSchema = z.object({
     description: z.string().optional(),
 })
 
+// export const jobListHandler = (app: Hono<{ Bindings: { DB: any; SECRET: string } }>) => {
+//     app.get('/api/job', async (c) => {
+//         const db = drizzle(c.env.DB)
+
+//         // Truy vấn tất cả các công việc từ bảng jobs và thông tin công ty từ bảng company
+//         const allJobs = await db.select()
+//             .from(jobs)
+//             .innerJoin(company, eq(company.id, jobs.companyid))
+//             .all()
+
+//         return c.json(allJobs)
+//     })
+// }
+
 export const jobListHandler = (app: Hono<{ Bindings: { DB: any; SECRET: string } }>) => {
     app.get('/api/job', async (c) => {
         const db = drizzle(c.env.DB)
 
-        // Truy vấn tất cả các công việc từ bảng jobs và thông tin công ty từ bảng company
-        const allJobs = await db.select()
+        const page = Number(c.req.query('page') || '1')
+        const pageSize = 20
+
+        const offset = (page - 1) * pageSize
+
+        const totalJobsResult = await db.select({
+            count: sql`count(*)`.as('count')
+        }).from(jobs).all()
+
+        const totalJobs = Number(totalJobsResult[0]?.count) || 0
+
+        const totalPages = Math.ceil(totalJobs / pageSize)
+
+        const paginatedJobs = await db.select()
             .from(jobs)
             .innerJoin(company, eq(company.id, jobs.companyid))
+            .limit(pageSize)
+            .offset(offset)
             .all()
 
-        return c.json(allJobs)
+        return c.json({
+            jobs: paginatedJobs,
+            currentPage: page,
+            pageSize: pageSize,
+            totalPages: totalPages,
+            totalItems: totalJobs
+        })
     })
 }
 
@@ -205,12 +239,78 @@ export const detailsHandler = (app: Hono<{ Bindings: { DB: any; SECRET: string }
     })
 }
 
+// export const jobSearchHandler = (app: Hono<{ Bindings: { DB: any; SECRET: string } }>) => {
+//     app.get('/api/job/search', async (c) => {
+//         const db = drizzle(c.env.DB)
+//         const { res } = c.req.query()
+
+//         const query = await db.select()
+//             .from(jobs)
+//             .innerJoin(company, eq(company.id, jobs.companyid))
+//             .where(
+//                 or(
+//                     like(jobs.title, `%${res}%`),
+//                     like(jobs.salary, `%${res}%`),
+//                     like(jobs.level, `%${res}%`),
+//                     like(jobs.exp, `%${res}%`),
+//                     like(jobs.quantity, `%${res}%`),
+//                     like(jobs.form, `%${res}%`),
+//                     like(jobs.address, `%${res}%`),
+//                     like(jobs.description, `%${res}%`),
+//                     like(company.name, `%${res}%`),
+//                     like(company.address, `%${res}%`),
+//                     like(company.url, `%${res}%`)
+//                 )
+//             )
+//             .all()
+
+//         return c.json(query)
+//     })
+// }
+
 export const jobSearchHandler = (app: Hono<{ Bindings: { DB: any; SECRET: string } }>) => {
     app.get('/api/job/search', async (c) => {
         const db = drizzle(c.env.DB)
-        const { res } = c.req.query()
 
-        const query = await db.select()
+        // Lấy res từ query string (từ khóa tìm kiếm)
+        const res = c.req.query('res') || ''
+
+        // Lấy giá trị page và pageSize từ query string, nếu không có thì mặc định là 1 và 20
+        const page = Number(c.req.query('page') || '1')
+        const pageSize = Number(c.req.query('pageSize') || '20')
+
+        const offset = (page - 1) * pageSize
+
+        // Đếm tổng số công việc phù hợp với từ khóa tìm kiếm
+        const totalJobsResult = await db.select({
+            count: sql`count(*)`.as('count')
+        })
+        .from(jobs)
+        .innerJoin(company, eq(company.id, jobs.companyid))
+        .where(
+            or(
+                like(jobs.title, `%${res}%`),
+                like(jobs.salary, `%${res}%`),
+                like(jobs.level, `%${res}%`),
+                like(jobs.exp, `%${res}%`),
+                like(jobs.quantity, `%${res}%`),
+                like(jobs.form, `%${res}%`),
+                like(jobs.address, `%${res}%`),
+                like(jobs.description, `%${res}%`),
+                like(company.name, `%${res}%`),
+                like(company.address, `%${res}%`),
+                like(company.url, `%${res}%`)
+            )
+        )
+        .all()
+
+        const totalJobs = Number(totalJobsResult[0]?.count) || 0
+
+        // Tính tổng số trang
+        const totalPages = Math.ceil(totalJobs / pageSize)
+
+        // Truy vấn các công việc phù hợp với từ khóa và phân trang
+        const paginatedJobs = await db.select()
             .from(jobs)
             .innerJoin(company, eq(company.id, jobs.companyid))
             .where(
@@ -228,11 +328,21 @@ export const jobSearchHandler = (app: Hono<{ Bindings: { DB: any; SECRET: string
                     like(company.url, `%${res}%`)
                 )
             )
+            .limit(pageSize)
+            .offset(offset)
             .all()
 
-        return c.json(query)
+        // Trả về kết quả phân trang
+        return c.json({
+            jobs: paginatedJobs,
+            currentPage: page,
+            pageSize: pageSize,
+            totalPages: totalPages,
+            totalItems: totalJobs
+        })
     })
 }
+
 
 export const jobSearchByFieldHandler = (app: Hono<{ Bindings: { DB: any; SECRET: string } }>) => {
     app.post('/api/job/searchbyfield', async (c) => {
