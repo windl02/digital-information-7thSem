@@ -57,7 +57,7 @@ export const jobListHandler = (app: Hono<{ Bindings: { DB: any; SECRET: string }
         const db = drizzle(c.env.DB)
 
         const page = Number(c.req.query('page') || '1')
-        const pageSize = 20
+        const pageSize = Number(c.req.query('pageSize') || '20')
 
         const offset = (page - 1) * pageSize
 
