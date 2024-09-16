@@ -2,12 +2,12 @@ import { Hono } from 'hono'
 import { drizzle } from 'drizzle-orm/d1'
 import { logger } from 'hono/logger'
 import { jwt } from 'hono/jwt'
+import { getCookie } from 'hono/cookie'
 
 import { homeHandler } from './homeHandler'
 import { getProfileHandler, createProfileHandler, updateProfileHandler } from './profileHandler'
 import { loginHandler, registerHandler, logoutHandler,updatePasswordHandler,accountSearchHandler, deleteHandler } from './accountHandler'
 import { jobListHandler, detailsHandler,addJobHandler, updateJobHandler, jobSearchHandler, jobSearchByFieldHandler } from './jobHandler'
-import { getCookie } from 'hono/cookie'
 
 type Bindings = {
   DB: D1Database
@@ -15,13 +15,12 @@ type Bindings = {
 }
 
 const app = new Hono<{ Bindings: Bindings }>()
-const secret = "lbIUVipXAWnz3UaHfslL2trn3LBe0gjj"
 app.use(logger())
 
 // Thêm middleware CORS
 const allowedOrigin = 'https://deadinside.pages.dev' // Chỉ định nguồn gốc của frontend
 app.use(async (c, next) => {
-  c.headers('Access-Control-Allow-Origin', '*');
+  c.header('Access-Control-Allow-Origin', '*');
   c.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
   c.header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
   c.header('Access-Control-Allow-Credentials', 'true')
